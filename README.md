@@ -336,89 +336,141 @@ Link ditaruh di bawah ini
             <br>
   
             - Readable handle
+                ```python
+                for sock in readable:
+                ```
+                <br>
+                
                 - Jika sock adalah server
                     - Loop jika ada `sock` di `readable`
                     - Jika `sock` adalah `server`, maka terima client dan tambahkan ke list select
                     - Tambahkan `conn` dari client ke `clients`, `client_state` menjadi `none`, dan `send_queue` dengan array kosong
-            ```python
-            for sock in readable:
-                if sock is server:
-                    conn, addr = server.accept()
-                    conn.setblocking(False)
-                    rlist.append(conn)
-                    xlist.append(conn)
-                    clients.append(conn)
-                    client_state[conn] = None
-                    send_queue[conn] = []
-                    print(f"Connected: {addr}")
-            ```
-            <br>
-  
-            - 
+                ```python
+                    if sock is server:
+                        conn, addr = server.accept()
+                        conn.setblocking(False)
+                        rlist.append(conn)
+                        xlist.append(conn)
+                        clients.append(conn)
+                        client_state[conn] = None
+                        send_queue[conn] = []
+                        print(f"Connected: {addr}")
+                ```
+                <br>
+    
+                - Jika sock bukan server
+                    - Terima data dari client
+                    - Cek apakah data kosong/tidak
+                    - Jika data kosong, maka remove client
+                    - Jika tidak, maka dapatkan state client dengan `get`
+                ```python
+                else:
+                    try:
+                        data = sock.recv(BUFFER_SIZE)
+                    except Exception:
+                        data = None
+        
+                    if not data:
+                        remove_client(sock, rlist, wlist, xlist)
                     else:
-                        try:
-                            data = sock.recv(BUFFER_SIZE)
-                        except Exception:
-                            data = None
-        
-                        if not data:
-                            remove_client(sock, rlist, wlist, xlist)
-                        else:
-                            state = client_state.get(sock)
-        
-                            #upload_size state
-                            if state and state['type'] == 'upload_size':
-                                file_size = int(data.decode('utf-8').strip())
-                                filename = state['filename']
-                                filepath = os.path.join(FILES_DIR, filename)
-                                client_state[sock] = {
-                                    'type': 'upload',
-                                    'filename': filename,
-                                    'size': file_size,
-                                    'received': 0,
-                                    'file': open(filepath, 'wb')
-                                }
-                                send_queue[sock].append(b"SIZE_OK")
-                                if sock not in wlist:
-                                    wlist.append(sock)
-        
-                            #upload state
-                            elif state and state['type'] == 'upload':
-                                state['file'].write(data)
-                                state['received'] += len(data)
-                                if state['received'] >= state['size']:
-                                    state['file'].close()
-                                    client_state[sock] = None
-                                    send_queue[sock].append(
-                                        f"Upload successful: {state['filename']}".encode('utf-8')
-                                    )
-                                    if sock not in wlist:
-                                        wlist.append(sock)
-        
-                            #download_ack state
-                            elif state and state['type'] == 'download_ack':
-                                if data.strip() == b"SIZE_OK":
-                                    filename = state['filename']
-                                    filepath = os.path.join(FILES_DIR, filename)
-                                    client_state[sock] = None
-                                    with open(filepath, 'rb') as f:
-                                        while True:
-                                            chunk = f.read(BUFFER_SIZE)
-                                            if not chunk:
-                                                break
-                                            send_queue[sock].append(chunk)
-                                    if sock not in wlist:
-                                        wlist.append(sock)
-                            
-                            #none state
-                            else:
-                                message = data.decode('utf-8').strip()
-                                print(f"{sock.getpeername()}: {message}")
-                                response = process(sock, message)
-                                if response:
-                                    send_queue[sock].append(response)
-                                    if sock not in wlist:
-                                        wlist.append(sock)
+                        state = client_state.get(sock)
+                ```
+                <br>
+    
+                - State `upload_size`
+                    - Cek state apakah `upload_size`
+                    - Jika iya, assign `file_size` dengan mendecode data dan convert ke integer
+                    - Assign `filename`, `filepath`, dan update `client_state` dengan socket client saat ini
+                    - Tambahkan response `SIZE_OK` ke `send_queue` dengan socket client saat ini
+                    - Jika tidak ditemukan socket di `wlist` maka tambahkan socket ke wlist
+                ```python
+                if state and state['type'] == 'upload_size':
+                    file_size = int(data.decode('utf-8').strip())
+                    filename = state['filename']
+                    filepath = os.path.join(FILES_DIR, filename)
+                    client_state[sock] = {
+                        'type': 'upload',
+                        'filename': filename,
+                        'size': file_size,
+                        'received': 0,
+                        'file': open(filepath, 'wb')
+                    }
+                    send_queue[sock].append(b"SIZE_OK")
+                    if sock not in wlist:
+                        wlist.append(sock)
+                ```
+                <br>
+    
+                - State 'upload`
+                    - Cek state apakah `upload`
+                    - Jika iya, write chunk ke memory lalu hitung data ter-received
+                    - Jika data yang diterima >= data file, maka close file dan set `client_state` ke `None`
+                    - Tambahkan `state['filename']` yang sudah diencode ke `send_queue`
+                    - Jika socket tidak ada di `wlist`, tambahkan socket ke `wlist`
+                ```python
+                elif state and state['type'] == 'upload':
+                    state['file'].write(data)
+                    state['received'] += len(data)
+                    if state['received'] >= state['size']:
+                        state['file'].close()
+                        client_state[sock] = None
+                        send_queue[sock].append(f"Upload successful: {state['filename']}".encode('utf-8'))
+                        if sock not in wlist:
+                            wlist.append(sock)
+                ```
+                <br.
+
+                - State `download_ack`
+                    - Cek state apakah 'download_ack`
+                    - Jika iya, cek apakah client mengirim `SIZE_OK`
+                    - Jika iya, set `filename` dari state filename, `filepath`, set state dengan `None`
+                    - Buka dan baca file menggunakan `rb`, r untuk read dan b untuk binary
+                    - Loop sampai file berakhir
+                    - Baca semua `chunk` lalu masukan ke `send_queue`
+                    - Jika sudah tidak ada `chunk`, maka break
+                    - Jika socket tidak ada di `wlist`, maka tambahkan socket di `wlist`
+                ```python
+                elif state and state['type'] == 'download_ack':
+                    if data.strip() == b"SIZE_OK":
+                        filename = state['filename']
+                        filepath = os.path.join(FILES_DIR, filename)
+                        client_state[sock] = None
+                        with open(filepath, 'rb') as f:
+                            while True:
+                                chunk = f.read(BUFFER_SIZE)
+                                if not chunk:
+                                    break
+                                send_queue[sock].append(chunk)
+                        if sock not in wlist:
+                            wlist.append(sock)
+                ```
+                <br>
+    
+                - State `None`
+                    - Jika tidak ada state aktif (`/list`, `/upload`, `/download`)
+                    - Decode data dari client dan assign ke `message`
+                    - Panggil fungsi `process` lalu assign nilainya ke `response`
+                    - Jika `response` ada, maka tambahkan ke `send_queue`
+                    - Jika socket tidak ada di `wlist`, maka tambahkan socket ke `wlist`
+                ```python
+                else:
+                    message = data.decode('utf-8').strip()
+                    print(f"{sock.getpeername()}: {message}")
+                    response = process(sock, message)
+                    if response:
+                        send_queue[sock].append(response)
+                        if sock not in wlist:
+                            wlist.append(sock)
+                ```
+                <br>
+
+            - Writable handler
+                - Loop per socket yang ada di writable
+                - Jika `send_queue` dari socket saat ini memiliki isi:
+                    - Pop data pertama dan assign ke `data`
+                    - Kirim data dari socket saat ini
+                    - Jika error (client disconnect), maka remove client
+                - Jika `send_queue` kosong, maka remove socket dari `wlist`
         
                 for sock in writable:
                     if send_queue.get(sock):
