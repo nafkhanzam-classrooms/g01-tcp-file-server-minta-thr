@@ -20,7 +20,7 @@ Link ditaruh di bawah ini
     import socket
     import os
     ```
-
+    <br><br>
 
     - Deklarasi Host, Port, Direktori File, dan Buffer Size
     ```python
@@ -29,19 +29,22 @@ Link ditaruh di bawah ini
     FILES_DIR = 'server_files'
     BUFFER_SIZE = 4096
     ```
+    <br><br>
 
     - Buat Direktori File, jika sudah ada set exist_ok ke ```True```
     ```python
     os.makedirs(FILES_DIR, exist_ok=True)
     ```
-    
+    <br><br>
+
     - Function ```handle_client``` dengan parameter conn (koneksi) dan addr (alamat client) untuk menghandle 1 client di 1 waktu
        - Deklarasi function dan print konektivitas
         ```python
         def handle_client(conn, addr):
             print(f"Connected: {addr}")
         ```
-
+        <br>
+        
        - Membaca message dari client
             - `try` untuk memulai error handling
             - Lakukan loop selama client masih terhubung
@@ -60,6 +63,8 @@ Link ditaruh di bawah ini
                 message = data.decode('utf-8').strip()
                 print(f"{addr}: {message}")
         ```
+        <br>
+       
        - Membaca perintah `/list`
             - Cek apakah `message == '/list'`
             - Jika iya, baca direktori `FILES_DIR`, lalu assign ke `files`
@@ -67,7 +72,7 @@ Link ditaruh di bawah ini
             - Jika `files` kosong, set `response` dengan `No files on server.`
             - Encode string menjadi bytes lalu kirim ke client
           
-            ```python
+        ```python
                 if message == '/list':
                     files = os.listdir(FILES_DIR)
                     if files:
@@ -75,7 +80,8 @@ Link ditaruh di bawah ini
                     else:
                         response = "No files on server."
                     conn.sendall(response.encode('utf-8'))
-            ```
+        ```
+        <br>
     
                 elif message.startswith('/upload '):
                     filename = message[8:].strip()
