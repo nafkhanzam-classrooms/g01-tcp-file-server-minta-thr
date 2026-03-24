@@ -15,8 +15,8 @@ Link ditaruh di bawah ini
 
 ## Penjelasan Program
 1. server-sync.py
-   ```python
-  import socket
+```python
+import socket
 import select
 import os
 
