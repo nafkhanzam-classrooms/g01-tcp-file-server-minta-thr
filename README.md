@@ -40,22 +40,23 @@ Link ditaruh di bawah ini
             print(f"Connected: {addr}")
         ```
 
-       - `try` untuk memulai error handling
-       - Lakukan loop selama client masih terhubung
-       - Lakukan block untuk client lain dan tunggu client saat ini mengirim data
-       - Jika tidak ada data (kosong) maka `break`
-       - Data akan terkirim dalam bentuk binary
-       - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
-       - Print alamat client dan apa yang dikirim
-        ```python
-            try:
-                while True:
-                    data = conn.recv(BUFFER_SIZE)
-                    if not data:
-                        break
-                    message = data.decode('utf-8').strip()
-                    print(f"{addr}: {message}")
-        ```
+       - Membaca message dari client
+           - `try` untuk memulai error handling
+           - Lakukan loop selama client masih terhubung
+           - Lakukan block untuk client lain dan tunggu client saat ini mengirim data
+           - Jika tidak ada data (kosong) maka `break`
+           - Data akan terkirim dalam bentuk binary
+           - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
+           - Print alamat client dan apa yang dikirim
+            ```python
+                try:
+                    while True:
+                        data = conn.recv(BUFFER_SIZE)
+                        if not data:
+                            break
+                        message = data.decode('utf-8').strip()
+                        print(f"{addr}: {message}")
+            ```
 
     ```python
                 if message == '/list':
