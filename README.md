@@ -82,7 +82,24 @@ Link ditaruh di bawah ini
                     conn.sendall(response.encode('utf-8'))
         ```
         <br>
-    
+
+        - Membaca perintah `/upload <filename>`
+            - Cek apakah `message` diawali dengan string `/upload `
+            - Jika iya, ambil nama file dengan mengambil string setelah indeks ke 8, lalu hapus space/newline
+            - Beritahu client bahwa server sudah siap dengan mengirimkan `READY` dalam bentuk biner
+            - Terima size file dari client lalu decode menjadi string
+            - Convert string menjadi integer
+            - Beritahu client bahwa ukuran telah diterima dengan mengirimkan `SIZE_OK` dalam bentuk biner
+            - Deklarasi `received` sebagai counter dan `filepath` sebagai path
+            - Buat file kosong di memory dengan `wb` dimana write untuk menulis dan binary artinya untuk semua jenis file
+            - Loop saat `received < file_size`
+            - Hitung berapa banyak bytes yang akan diterima dengan membandingkan nilai minimum dari `BUFFER_SIZE` dan `file_size - received`, lalu assign ke `chunk`
+            - Jika chunk kosong, maka break
+            - Tulis byte di file
+            - Tambahkan panjang dari chunk ke `received`
+            - Print file yang telah diupload, sizenya, dan client yang mengupload
+            - Beritahu client bahwa file telah sukses diupload
+        ```python
                 elif message.startswith('/upload '):
                     filename = message[8:].strip()
                     conn.sendall(b"READY")
@@ -91,16 +108,32 @@ Link ditaruh di bawah ini
                     conn.sendall(b"SIZE_OK")
                     received = 0
                     filepath = os.path.join(FILES_DIR, filename)
-                    with open(filepath, 'wb') as f: #open file untuk write dalam biner
+                    with open(filepath, 'wb') as f:
                         while received < file_size:
                             chunk = conn.recv(min(BUFFER_SIZE, file_size - received))
                             if not chunk:
                                 break
-                            f.write(chunk) #tulis byte di file
+                            f.write(chunk)
                             received += len(chunk)
                     print(f"Received file '{filename}' ({received} bytes) from {addr}")
                     conn.sendall(f"Upload success: {filename}".encode('utf-8'))
-    
+        ```
+        <br>
+
+        - Membaca perintah `/download <filename>`
+            - Cek apakah `message` diawali dengan string `/download `
+            - Jika iya, ambil nama file dengan mengambil string setelah indeks ke 10, lalu hapus space/newline
+            - Deklarasi `filepath` sebagai path file yang ingin didownload
+            - Jika file/path tidak ada maka beritahu client bahwa `File not found.`
+            - jika ada, dapatkan size file dengan `getsize`
+            - Beritahu client ukuran file yang akan dikirim lalu tunggu konfirmasi client
+            - Jika client menjawab `SIZE_OK`, maka buka file dengan rb dimana r adalah read dan b adalah binary
+            - Loop sampai file habis
+            - Baca file, jika file kosong/habis maka break
+            - Kirimkan potongan (chunk) file ke client
+            - Beritahu client bahwa file telah sukses didownload
+
+        ```python
                 elif message.startswith('/download '):
                     filename = message[10:].strip()
                     filepath = os.path.join(FILES_DIR, filename)
@@ -118,26 +151,45 @@ Link ditaruh di bawah ini
                                         break
                                     conn.sendall(chunk)
                             print(f"Sent file '{filename}' to {addr}")
-    
+        ```
+        <br>
+
+        - Error handling
+        ```python
         except (ConnectionResetError, BrokenPipeError):
             pass
         finally:
             conn.close()
             print(f"Disconnected: {addr}")
-    
-    def main():
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((HOST, PORT))
-            server.listen(1)
-            print(f"Server listening on {HOST}:{PORT}")
-            while True:
-                conn, addr = server.accept()
-                handle_client(conn, addr)
-    
-    
-    if __name__ == '__main__':
-        main()
+        ```
+        <br>
+
+        - Fungsi `main()`
+            - Buat socket
+            - Izinkan reuse port
+            - Bind server ke alamat dan port
+            - Server listen hanya ke 1 client
+            - Loop untuk sampai client mengakhiri koneksi
+            - Tunggu koneksi dari client
+            - Block client lain selain dari client saat ini
+        ```python
+        def main():
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server.bind((HOST, PORT))
+                server.listen(1)
+                print(f"Server listening on {HOST}:{PORT}")
+                while True:
+                    conn, addr = server.accept()
+                    handle_client(conn, addr)
+        
+        ```
+        <br>
+
+        - Handler untuk import file
+        ```python
+        if __name__ == '__main__':
+            main()
        ```
 
 ## Screenshot Hasil
