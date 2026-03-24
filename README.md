@@ -4,7 +4,7 @@
 ## Anggota Kelompok
 | Nama           | NRP        | Kelas     |
 | ---            | ---        | ----------|
-|                |            |           |
+| Hazza Danta Hermandanu               | 5025241117           | D          |
 |                |            |           |
 
 ## Link Youtube (Unlisted)
