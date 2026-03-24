@@ -471,24 +471,29 @@ Link ditaruh di bawah ini
                     - Kirim data dari socket saat ini
                     - Jika error (client disconnect), maka remove client
                 - Jika `send_queue` kosong, maka remove socket dari `wlist`
-        
-                for sock in writable:
-                    if send_queue.get(sock):
-                        data = send_queue[sock].pop(0)
-                        try:
-                            sock.sendall(data)
-                        except Exception:
-                            remove_client(sock, rlist, wlist, xlist)
-                    else:
-                        wlist.remove(sock)
-        
-                for sock in exceptional:
-                    print(f"Error on {sock.getpeername()}")
-                    remove_client(sock, rlist, wlist, xlist)
-        
+            ```python
+            for sock in writable:
+                if send_queue.get(sock):
+                    data = send_queue[sock].pop(0)
+                    try:
+                        sock.sendall(data)
+                    except Exception:
+                        remove_client(sock, rlist, wlist, xlist)
+                else:
+                    wlist.remove(sock)
+            ```
+            <br>
+  
+            - Error handler
+            ```python
+            for sock in exceptional:
+                print(f"Error on {sock.getpeername()}")
+                remove_client(sock, rlist, wlist, xlist)
+            ```
+        Handler untuk import file
+        ```
         if __name__ == '__main__':
-            main()
-    
-   ```
+            main() 
+        ```
 
 ## Screenshot Hasil
