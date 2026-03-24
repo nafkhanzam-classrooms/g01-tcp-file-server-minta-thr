@@ -20,7 +20,7 @@ Link ditaruh di bawah ini
     import socket
     import os
     ```
-    <br><br>
+    <br>
 
     - Deklarasi Host, Port, Direktori File, dan Buffer Size
     ```python
@@ -29,13 +29,13 @@ Link ditaruh di bawah ini
     FILES_DIR = 'server_files'
     BUFFER_SIZE = 4096
     ```
-    <br><br>
+    <br>
 
     - Buat Direktori File, jika sudah ada set exist_ok ke ```True```
     ```python
     os.makedirs(FILES_DIR, exist_ok=True)
     ```
-    <br><br>
+    <br>
 
     - Function ```handle_client``` dengan parameter conn (koneksi) dan addr (alamat client) untuk menghandle 1 client di 1 waktu
        - Deklarasi function dan print konektivitas
