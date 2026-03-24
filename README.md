@@ -20,7 +20,7 @@ Link ditaruh di bawah ini
 import socket
 import os
 ```
-    - Deklarasi Host, Port, Direktori File, dan Buffer Size
+- Deklarasi Host, Port, Direktori File, dan Buffer Size
 ```python
 HOST = '0.0.0.0'
 PORT = 9000
