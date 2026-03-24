@@ -276,21 +276,32 @@ Link ditaruh di bawah ini
             ```
             <br>
 
-       - Function `remove_client`
-        def remove_client(sock, rlist, wlist, xlist):
-            print(f"Disconnected: {sock.getpeername()}")
-            if sock in rlist:
-                rlist.remove(sock)
-            if sock in wlist:
-                wlist.remove(sock)
-            if sock in xlist:
-                xlist.remove(sock)
-            if sock in clients:
-                clients.remove(sock)
-            send_queue.pop(sock, None)
-            client_state.pop(sock, None)
-            sock.close()
-        
+    - Function `remove_client` dengan parameter `sock`, `rlist`, `wlist`, dan `xlist` untuk meremove client saat client disconnect
+    ```python
+    def remove_client(sock, rlist, wlist, xlist):
+        print(f"Disconnected: {sock.getpeername()}")
+        if sock in rlist:
+            rlist.remove(sock)
+        if sock in wlist:
+            wlist.remove(sock)
+        if sock in xlist:
+            xlist.remove(sock)
+        if sock in clients:
+            clients.remove(sock)
+        send_queue.pop(sock, None)
+        client_state.pop(sock, None)
+        sock.close()
+    ```
+   <br>
+
+   - Funcgsi `main()`
+        - Setup
+            - Buat socket
+            - Izinkan reuse port
+            - Bind server ke alamat dan port
+            - Server listen maksimal ke 10 koneksi
+            - Matikan blocking
+        ```python
         def main():
             server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -298,24 +309,52 @@ Link ditaruh di bawah ini
             server.listen(10)
             server.setblocking(False)
             print(f"Server listening on {HOST}:{PORT}")
-        
-            rlist = [server]   #socket yang siap dibaca
-            wlist = []         #socket yang siap ditulis
-            xlist = [server]   #socket yang error
-        
+        ```
+        <br>
+
+        - List select
+            - rlist untuk menyimpan socket yang siap untuk dibaca
+            - wlist untuk menyimpan socket yang siap untuk ditulis
+            - xlist untuk menyimpan socket untuk mendeteksi error
+        ```python
+        rlist = [server]
+        wlist = []         
+        xlist = [server]  
+        ```
+        <br>
+
+        - Main loop
+            - Loop terus dengan
+                - `readable`: socket yang punya data masuk
+                - `writable`: socket yang siap dikirim
+                - `exceptional`: socket yang error
+                - timeout 1 detik
+            ```python
             while True:
                 readable, writable, exceptional = select.select(rlist, wlist, xlist, 1.0)
-                for sock in readable:
-                    if sock is server:
-                        conn, addr = server.accept()
-                        conn.setblocking(False)
-                        rlist.append(conn)
-                        xlist.append(conn)
-                        clients.append(conn)
-                        client_state[conn] = None
-                        send_queue[conn] = []
-                        print(f"Connected: {addr}")
-        
+            ```
+            <br>
+  
+            - Readable handle
+                - Jika sock adalah server
+                    - Loop jika ada `sock` di `readable`
+                    - Jika `sock` adalah `server`, maka terima client dan tambahkan ke list select
+                    - Tambahkan `conn` dari client ke `clients`, `client_state` menjadi `none`, dan `send_queue` dengan array kosong
+            ```python
+            for sock in readable:
+                if sock is server:
+                    conn, addr = server.accept()
+                    conn.setblocking(False)
+                    rlist.append(conn)
+                    xlist.append(conn)
+                    clients.append(conn)
+                    client_state[conn] = None
+                    send_queue[conn] = []
+                    print(f"Connected: {addr}")
+            ```
+            <br>
+  
+            - 
                     else:
                         try:
                             data = sock.recv(BUFFER_SIZE)
