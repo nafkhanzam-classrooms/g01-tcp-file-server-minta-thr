@@ -48,17 +48,24 @@ Link ditaruh di bawah ini
             - Data akan terkirim dalam bentuk binary
             - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
             - Print alamat client dan apa yang dikirim
+    
+        ```python
+        try:
+            while True:
+                data = conn.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                message = data.decode('utf-8').strip()
+                print(f"{addr}: {message}")
+        ```
+       - Membaca perintah `/list`
+            - Cek apakah `message == '/list'`
+            - Jika iya, baca direktori `FILES_DIR`, lalu assign ke `files`
+            - Jika `files` tidak kosong, maka gabungkan semua nama file dengan newline dan assign ke `response`
+            - Jika `files` kosong, set `response` dengan `No files on server.`
+            - Encode string menjadi bytes lalu kirim ke client
+          
             ```python
-                try:
-                    while True:
-                        data = conn.recv(BUFFER_SIZE)
-                        if not data:
-                            break
-                        message = data.decode('utf-8').strip()
-                        print(f"{addr}: {message}")
-            ```
-
-    ```python
                 if message == '/list':
                     files = os.listdir(FILES_DIR)
                     if files:
@@ -66,6 +73,7 @@ Link ditaruh di bawah ini
                     else:
                         response = "No files on server."
                     conn.sendall(response.encode('utf-8'))
+            ```
     
                 elif message.startswith('/upload '):
                     filename = message[8:].strip()
