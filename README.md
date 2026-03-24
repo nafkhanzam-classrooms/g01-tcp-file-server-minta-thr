@@ -15,17 +15,22 @@ Link ditaruh di bawah ini
 
 ## Penjelasan Program
 1. server-sync.py
+    - Import library Socket dan OS
 ```python
 import socket
 import os
-
+```
+    - Deklarasi Host, Port, Direktori File, dan Buffer Size
+```python
 HOST = '0.0.0.0'
 PORT = 9000
 FILES_DIR = 'server_files'
 BUFFER_SIZE = 4096
+```
 
+```python
 os.makedirs(FILES_DIR, exist_ok=True)
-
+```
 
 def handle_client(conn, addr):
     print(f"Connected: {addr}")
