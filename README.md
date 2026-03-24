@@ -33,23 +33,25 @@ Link ditaruh di bawah ini
     os.makedirs(FILES_DIR, exist_ok=True)
     ```
     
-    - Function ```handle_client``` untuk menghandle 1 client di 1 waktu
-          - Dekalrasi function & print konektivitas
-    ```python
-    def handle_client(conn, addr):
-        print(f"Connected: {addr}")
-    ```
+    - Function ```handle_client``` dengan parameter conn (koneksi) dan addr (alamat client) untuk menghandle 1 client di 1 waktu
+       - Deklarasi function dan print konektivitas
+        ```python
+        def handle_client(conn, addr):
+            print(f"Connected: {addr}")
+        ```
 
-   
-    ```python
-        try:
-            while True:
-                data = conn.recv(BUFFER_SIZE)
-                if not data:
-                    break
-                message = data.decode('utf-8').strip() #ubah data menjadi str & hapus newline di ujung
-                print(f"{addr}: {message}")
-    ```
+       - ```python
+         try
+         ```
+        ```python
+            try:
+                while True:
+                    data = conn.recv(BUFFER_SIZE)
+                    if not data:
+                        break
+                    message = data.decode('utf-8').strip() #ubah data menjadi str & hapus newline di ujung
+                    print(f"{addr}: {message}")
+        ```
 
     ```python
                 if message == '/list':
