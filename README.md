@@ -418,7 +418,7 @@ Link ditaruh di bawah ini
                         if sock not in wlist:
                             wlist.append(sock)
                 ```
-                <br.
+                <br>
 
                 - State `download_ack`
                     - Cek state apakah 'download_ack`
