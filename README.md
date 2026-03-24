@@ -496,5 +496,328 @@ Link ditaruh di bawah ini
         if __name__ == '__main__':
             main() 
         ```
+        <br><br>
+
+3. server-poll.py
+    - Import library
+    ```python
+    import socket
+    import select
+    import os
+    ```
+    <br>
+
+    - Dekalarasi `HOST`, `HOST`, `PORT`, dan `BUFFER_SIZE`
+    ```python
+    HOST = '0.0.0.0'
+    PORT = 9002
+    FILES_DIR = 'server_files'
+    BUFFER_SIZE = 4096
+    ```
+    <br>
+
+    - Buat Direktori File, jika sudah ada set exist_ok ke ```True```
+    ```python
+    os.makedirs(FILES_DIR, exist_ok=True)
+    ```
+    <br>
+
+    - Direct mapping file descriptor
+        - `fd_to_sock`: fd-socket
+        - `fd_to_addr`: fd-alamat client
+    ```python
+    fd_to_sock = {} 
+    fd_to_addr = {}
+    ```
+    <br>
+
+    - Deklarasi `clients` untuk menyimpan file descriptor client yang terhubung, `client_state` untuk menyimpan state dari setiap client, `send_queue` untuk menyimpan antrian pengiriman data ke setiap client, `poller` sebagai poll object dan diset ke `None`
+    ```python
+    client_state = {}   
+    send_queue = {}   
+    clients = []
+    poller = None
+    ```
+    <br>
+
+    - Function `process` dengan parameter `fd` dan `message` untuk menghandle proses dari setiap perintah client
+        - Deklarasi function
+        ```python
+        def process(fd, message):
+        ```
+        <br>
+
+        - Jika message `/list`
+            - Assign file yang ada di `FILES_DIR` ke files
+            - Jika `files` tidak kosong, maka gabungkan semua nama file dengan newline dan assign ke `response`
+            - Jika `files` kosong, set `response` dengan `No files on server.`
+            - Encode string menjadi bytes lalu return
+        ```python
+        if message == '/list':
+            files = os.listdir(FILES_DIR)
+            response = ("\n".join(files)) if files else "No files on server."
+            return response.encode('utf-8')
+       ```
+        <br>
+
+        - Jika message `/upload `
+            - Ambil nama file dengan mengambil string setelah indeks ke 8, lalu hapus space/newline
+            - Set `client_state` pada client saat ini dengan `type` : `upload_size` dan `filename` : `filename`
+            - return `READY` yang telah diconvert ke biner
+        ```python
+        elif message.startswith('/upload '):
+            filename = message[8:].strip()
+            client_state[fd] = {'type': 'upload_size', 'filename': filename}
+            return b"READY"
+        ```
+        <br>
+
+        - Jika message `/download `
+            - Ambil nama file dengan mengambil string setelah indeks ke 10, lalu hapus space/newline
+            - Assign `file_path` dari file ke `filepath`
+            - Jika file/filepath tidak ada maka return `File not found` dalam bentuk biner
+            - Dapatkan file size dengan `getsize`
+            - Set `client state` pada client saat ini dengan `type` : `download_ack` dan `filename` : `filename`
+            - Return `SIZE {file_size}` yang telah diencode
+        ```python
+        elif message.startswith('/download '):
+            filename = message[10:].strip()
+            filepath = os.path.join(FILES_DIR, filename)
+            if not os.path.exists(filepath):
+                return b"ERROR: File not found."
+            file_size = os.path.getsize(filepath)
+            client_state[fd] = {'type': 'download_ack', 'filename': filename}
+            return f"SIZE {file_size}".encode('utf-8')
+        ```
+        <br>
+
+        - Function `remove_client` dengan parameter `fd` untuk meremove client saat client disconnect
+        ```python
+        def remove_client(fd):
+            print(f"[POLL] Disconnected: {fd_to_addr.get(fd)}")
+            poller.unregister(fd)                  
+            sock = fd_to_sock.pop(fd, None)
+            fd_to_addr.pop(fd, None)
+            client_state.pop(fd, None)
+            send_queue.pop(fd, None)
+            if fd in clients:
+                clients.remove(fd)
+            if sock:
+                sock.close()
+        ```
+        <br>
+
+        - Fungsi `main()`
+            - Setup
+                - Panggil `poller` sebagai variabel global
+                - Buat socket
+                - Izinkan reuse port
+                - Bind server ke alamat dan port
+                - Server listen maksimal ke 10 koneksi
+                - Matikan blocking
+            ```python
+            def main():
+                global poller
+
+                server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server.bind((HOST, PORT))
+                server.listen(10)
+                server.setblocking(False)
+                print(f"Server listening on {HOST}:{PORT}")
+            ```
+            <br>
+
+            - Inisialisasi poll
+                - `poller`: objek poll yang akan memantau semua file descriptor
+                - Register server fd ke `poller`, lalu pantau event `POLLIN`
+                - Simpan fd serber ke `server_fd`
+                - Simpan server ke direct mapping
+            ```python
+            poller = select.poll()
+            poller.register(server.fileno(), select.POLLIN)
+        
+            server_fd = server.fileno()
+            fd_to_sock[server_fd] = server
+            ```
+            <break>
+
+            - Loop utama
+                - Event, timeout 1000ms (1 detik)
+                - Loop ke setiap event
+                ```python
+                while True:
+                    events = poller.poll(1000)
+                    for fd, event in events:
+                ```
+                <br>
+            
+                - Jika `fd` = `server_fd` (Client mencoba untuk terhubung dengan server)
+                    - Accept client
+                    - Set block ke `false`
+                    - Berikan client file descriptor
+                ```python
+                if fd == server_fd:
+                    conn, addr = server.accept()
+                    conn.setblocking(False)
+                    cfd = conn.fileno()
+                ```
+                <br>
+     
+                - Register `cfd` untuk `POLLIN`
+                ```python
+                poller.register(cfd, select.POLLIN)
+                ```
+                <br>
+
+                - Simpan semua info client dengan key `fd`
+                ```python
+                fd_to_sock[cfd] = conn
+                fd_to_addr[cfd] = addr
+                client_state[cfd] = None
+                send_queue[cfd] = []
+                clients.append(cfd)
+                print(f"[POLL] Connected: {addr}")
+                ```
+                <br>
+  
+                - Jika terjadi event dan client disconnect (POLLHUP) atau socket error (POLERR), maka remove client
+                ```python
+                elif event & (select.POLLHUP | select.POLLERR):
+                    remove_client(fd)
+                ```
+                <br>
+  
+                - Jika terjadi event dan ada data masuk yang siap dibaca (`POLLIN`):
+                    - Set sock berdasarkan `fd` yang sedang aktif
+                    - Terima data dari client
+                    - Jika data kosong, maka remove client
+                    - Jika tidak, maka dapatkan state client dengan `get`
+                    ```python
+                    elif event & select.POLLIN:
+                        sock = fd_to_sock[fd]
+                        try:
+                            data = sock.recv(BUFFER_SIZE)
+                        except Exception:
+                            data = None
+        
+                        if not data:
+                            remove_client(fd)
+                        else:
+                            state = client_state.get(fd)
+                    ```
+                    <br>
+
+                    - State `upload_size`
+                        - Cek state apakah `upload_size`
+                        - Jika iya, assign `file_size` dengan mendecode data dan convert ke integer
+                        - Assign `filename`, `filepath`, dan update `client_state` dengan `fd` client saat ini
+                        - Tambahkan response `SIZE_OK` ke `send_queue` dengan socket client saat ini
+                        - Modify `poller` dengan `POLLIN` atau `POLLOUT`
+                    ```python
+                        if state and state['type'] == 'upload_size':
+                            file_size = int(data.decode('utf-8').strip())
+                            filename = state['filename']
+                            filepath = os.path.join(FILES_DIR, filename)
+                            client_state[fd] = {
+                                'type': 'upload',
+                                'filename': filename,
+                                'size': file_size,
+                                'received': 0,
+                                'file': open(filepath, 'wb')
+                            }
+                            send_queue[fd].append(b"SIZE_OK")
+                            poller.modify(fd, select.POLLIN | select.POLLOUT)
+                    ```
+                    <br>
+         
+                    - State 'upload`
+                        - Cek state apakah `upload`
+                        - Jika iya, write chunk ke memory lalu hitung data ter-received
+                        - Jika data yang diterima >= data file, maka close file dan set `client_state` ke `None`
+                        - Tambahkan `state['filename']` yang sudah diencode ke `send_queue`
+                        - Modify `poller` dengan `POLLIN` atau `POLLOUT`
+                    ```python
+                        elif state and state['type'] == 'upload':
+                            state['file'].write(data)
+                            state['received'] += len(data)
+                            if state['received'] >= state['size']:
+                                state['file'].close()
+                                client_state[fd] = None
+                                send_queue[fd].append(
+                                    f"Upload successful: {state['filename']}".encode('utf-8')
+                                )
+                                poller.modify(fd, select.POLLIN | select.POLLOUT)
+                    ```
+                    <br>
+         
+                    - State `download_ack`
+                        - Cek state apakah 'download_ack`
+                        - Jika iya, cek apakah client mengirim `SIZE_OK`
+                        - Jika iya, set `filename` dari state filename, `filepath`, set state dengan `None`
+                        - Buka dan baca file menggunakan `rb`, r untuk read dan b untuk binary
+                        - Loop sampai file berakhir
+                        - Baca semua `chunk` lalu masukan ke `send_queue`
+                        - Jika sudah tidak ada `chunk`, maka break
+                        - Modify `poller` dengan `POLLIN` atau `POLLOUT`
+                    ```python
+                        elif state and state['type'] == 'download_ack':
+                            if data.strip() == b"SIZE_OK":
+                                filename = state['filename']
+                                filepath = os.path.join(FILES_DIR, filename)
+                                client_state[fd] = None
+                                with open(filepath, 'rb') as f:
+                                    while True:
+                                        chunk = f.read(BUFFER_SIZE)
+                                        if not chunk:
+                                            break
+                                        send_queue[fd].append(chunk)
+                                poller.modify(fd, select.POLLIN | select.POLLOUT)
+                    ```
+                    <br>
+    
+                    - State `None`
+                        - Jika tidak ada state aktif (`/list`, `/upload`, `/download`)
+                        - Decode data dari client dan assign ke `message`
+                        - Panggil fungsi `process` lalu assign nilainya ke `response`
+                        - Jika `response` ada, maka tambahkan ke `send_queue`
+                        - Modify `poller` dengan `POLLIN` atau `POLLOUT`
+                    ```python
+                        else:
+                            message  = data.decode('utf-8').strip()
+                            print(f"{fd_to_addr[fd]}: {message}")
+                            response = process(fd, message)
+                            if response:
+                                send_queue[fd].append(response)
+                                poller.modify(fd, select.POLLIN | select.POLLOUT)
+                    ```
+                    <br>
+  
+                - Jika terjadi event dan statusnya (`POLLOUT`):
+                    - Jika `send_queue` dari `fd` saat ini memiliki isi:
+                        - Pop data pertama dan assign ke `data`
+                        - Kirim data dari socket saat ini
+                        - Jika error (client disconnect), maka remove client dan continue
+                        - Jika `send_queue` kosong, maka modify `poller` dengan `POLLIN`
+                ```python
+                elif event & select.POLLOUT:
+                    if send_queue.get(fd):
+                        data = send_queue[fd].pop(0)
+                        try:
+                            fd_to_sock[fd].sendall(data)
+                        except Exception:
+                            remove_client(fd)
+                            continue
+    
+                    if not send_queue.get(fd):
+                        poller.modify(fd, select.POLLIN)
+                ```
+                <br>
+
+        - Handler untuk import file
+        ```python
+        if __name__ == '__main__':
+            main()
+       ```
 
 ## Screenshot Hasil
