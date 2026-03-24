@@ -41,13 +41,13 @@ Link ditaruh di bawah ini
         ```
 
        - Membaca message dari client
-           - `try` untuk memulai error handling
-           - Lakukan loop selama client masih terhubung
-           - Lakukan block untuk client lain dan tunggu client saat ini mengirim data
-           - Jika tidak ada data (kosong) maka `break`
-           - Data akan terkirim dalam bentuk binary
-           - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
-           - Print alamat client dan apa yang dikirim
+            - `try` untuk memulai error handling
+            - Lakukan loop selama client masih terhubung
+            - Lakukan block untuk client lain dan tunggu client saat ini mengirim data
+            - Jika tidak ada data (kosong) maka `break`
+            - Data akan terkirim dalam bentuk binary
+            - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
+            - Print alamat client dan apa yang dikirim
             ```python
                 try:
                     while True:
