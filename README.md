@@ -490,7 +490,7 @@ Link ditaruh di bawah ini
                 print(f"Error on {sock.getpeername()}")
                 remove_client(sock, rlist, wlist, xlist)
             ```
-        Handler untuk import file
+        - Handler untuk import file
         ```
         if __name__ == '__main__':
             main() 
