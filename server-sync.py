@@ -1,0 +1,84 @@
+import socket
+import os
+
+HOST = '0.0.0.0'
+PORT = 9000
+FILES_DIR = 'server_files'
+BUFFER_SIZE = 4096
+
+os.makedirs(FILES_DIR, exist_ok=True)
+
+
+def handle_client(conn, addr):
+    print(f"Connected: {addr}")
+    try:
+        while True:
+            data = conn.recv(BUFFER_SIZE)
+            if not data:
+                break
+            message = data.decode('utf-8').strip() #ubah data menjadi str & hapus newline di ujung
+            print(f"{addr}: {message}")
+
+            if message == '/list':
+                files = os.listdir(FILES_DIR)
+                if files:
+                    response = "\n".join(files)
+                else:
+                    response = "No files on server."
+                conn.sendall(response.encode('utf-8'))
+
+            elif message.startswith('/upload '):
+                filename = message[8:].strip()
+                conn.sendall(b"READY")
+                size_data = conn.recv(BUFFER_SIZE).decode('utf-8').strip()
+                file_size = int(size_data)
+                conn.sendall(b"SIZE_OK")
+                received = 0
+                filepath = os.path.join(FILES_DIR, filename)
+                with open(filepath, 'wb') as f: #open file untuk write dalam biner
+                    while received < file_size:
+                        chunk = conn.recv(min(BUFFER_SIZE, file_size - received))
+                        if not chunk:
+                            break
+                        f.write(chunk) #tulis byte di file
+                        received += len(chunk)
+                print(f"Received file '{filename}' ({received} bytes) from {addr}")
+                conn.sendall(f"Upload success: {filename}".encode('utf-8'))
+
+            elif message.startswith('/download '):
+                filename = message[10:].strip()
+                filepath = os.path.join(FILES_DIR, filename)
+                if not os.path.exists(filepath):
+                    conn.sendall(b"ERROR: File not found.")
+                else:
+                    file_size = os.path.getsize(filepath)
+                    conn.sendall(f"SIZE {file_size}".encode('utf-8'))
+                    ack = conn.recv(BUFFER_SIZE)
+                    if ack == b"SIZE_OK":
+                        with open(filepath, 'rb') as f: #open file untuk read
+                            while True:
+                                chunk = f.read(BUFFER_SIZE)
+                                if not chunk:
+                                    break
+                                conn.sendall(chunk)
+                        print(f"Sent file '{filename}' to {addr}")
+
+    except (ConnectionResetError, BrokenPipeError):
+        pass
+    finally:
+        conn.close()
+        print(f"Disconnected: {addr}")
+
+def main():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind((HOST, PORT))
+        server.listen(1)
+        print(f"Server listening on {HOST}:{PORT}")
+        while True:
+            conn, addr = server.accept()
+            handle_client(conn, addr)
+
+
+if __name__ == '__main__':
+    main()
