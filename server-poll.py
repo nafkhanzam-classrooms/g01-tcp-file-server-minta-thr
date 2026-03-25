@@ -81,7 +81,7 @@ def main():
                 client_state[cfd] = None
                 send_queue[cfd] = []
                 clients.append(cfd)
-                print(f"[POLL] Connected: {addr}")
+                print(f"Connected: {addr}")
 
             elif event & (select.POLLHUP | select.POLLERR):
                 remove_client(fd)
