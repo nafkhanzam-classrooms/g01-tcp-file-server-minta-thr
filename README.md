@@ -1279,7 +1279,7 @@ Link ditaruh di bawah ini
             - Jika `user_input` adalah `/list`
                 - Dapatkan `filename`
                 - Set `stop_event` dan tunggu thread recv berhenti
-                - Panggil fungsi `send_download`
+                - Panggil fungsi `send_upload`
                 - Reset `stop_event`
                 - Jalankan recv baru
             ```python
