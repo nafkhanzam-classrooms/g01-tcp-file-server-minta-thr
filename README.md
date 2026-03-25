@@ -1276,19 +1276,19 @@ Link ditaruh di bawah ini
             ```
             <br>
      
-            - Jika `user_input` adalah `/list`
-                - Dapatkan `filename`
-                - Set `stop_event` dan tunggu thread recv berhenti
-                - Panggil fungsi `send_upload`
-                - Reset `stop_event`
-                - Jalankan recv baru
+            - Jika `user_input` adalah `/list`, maka kirimkan message `/list` ke server
             ```python
             elif user_input == '/list':
                 sock.sendall(b"/list")
             ```
             <br>
      
-            - Jika `user_input` adalah `/upload`, maka dapatkan `filename` dan panggil fungsi `send_upload`
+            - Jika `user_input` adalah `/upload`:
+                - Dapatkan `filename`
+                - Set `stop_event` dan tunggu thread recv berhenti
+                - Panggil fungsi `send_upload`
+                - Reset `stop_event`
+                - Jalankan recv baru
             ```python
             elif user_input.startswith('/upload '):
                 filename = user_input[8:].strip()
