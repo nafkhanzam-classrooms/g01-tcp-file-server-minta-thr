@@ -863,12 +863,12 @@ Link ditaruh di bawah ini
     <br>
 
     - Membaca message dari client
-            - `try` untuk memulai error handling
-            - Lakukan loop selama client masih terhubung
-            - Tunggu client saat ini mengirim data
-            - Jika tidak ada data (kosong) maka `break`
-            - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
-            - Print alamat client dan apa yang dikirim
+        - `try` untuk memulai error handling
+        - Lakukan loop selama client masih terhubung
+        - Tunggu client saat ini mengirim data
+        - Jika tidak ada data (kosong) maka `break`
+        - Decode data yang diterima menjadi bentuk string lalu hapus space/newline di akhir string
+        - Print alamat client dan apa yang dikirim
     ```python
     try:
         while True:
@@ -881,11 +881,11 @@ Link ditaruh di bawah ini
     <br>
 
     - Membaca perintah `/list`
-            - Cek apakah `message == '/list'`
-            - Jika iya, baca direktori `FILES_DIR`, lalu assign ke `files`
-            - Jika `files` tidak kosong, maka gabungkan semua nama file dengan newline dan assign ke `response`
-            - Jika `files` kosong, set `response` dengan `No files on server.`
-            - Encode string menjadi bytes lalu kirim ke client
+        - Cek apakah `message == '/list'`
+        - Jika iya, baca direktori `FILES_DIR`, lalu assign ke `files`
+        - Jika `files` tidak kosong, maka gabungkan semua nama file dengan newline dan assign ke `response`
+        - Jika `files` kosong, set `response` dengan `No files on server.`
+        - Encode string menjadi bytes lalu kirim ke client
     ```python
     if message == '/list':
         files = os.listdir(FILES_DIR)
@@ -895,21 +895,21 @@ Link ditaruh di bawah ini
     <br>
 
     - Membaca perintah `/upload <filename>`
-            - Cek apakah `message` diawali dengan string `/upload `
-            - Jika iya, ambil nama file dengan mengambil string setelah indeks ke 8, lalu hapus space/newline
-            - Beritahu client bahwa server sudah siap dengan mengirimkan `READY` dalam bentuk biner
-            - Terima size file dari client lalu decode menjadi string
-            - Convert string menjadi integer
-            - Beritahu client bahwa ukuran telah diterima dengan mengirimkan `SIZE_OK` dalam bentuk biner
-            - Deklarasi `received` sebagai counter dan `filepath` sebagai path
-            - Buat file kosong di memory dengan `wb` dimana write untuk menulis dan binary artinya untuk semua jenis file
-            - Loop saat `received < file_size`
-            - Hitung berapa banyak bytes yang akan diterima dengan membandingkan nilai minimum dari `BUFFER_SIZE` dan `file_size - received`, lalu assign ke `chunk`
-            - Jika chunk kosong, maka break
-            - Tulis byte di file
-            - Tambahkan panjang dari chunk ke `received`
-            - Print file yang telah diupload, sizenya, dan client yang mengupload
-            - Beritahu client bahwa file telah sukses diupload
+        - Cek apakah `message` diawali dengan string `/upload `
+        - Jika iya, ambil nama file dengan mengambil string setelah indeks ke 8, lalu hapus space/newline
+        - Beritahu client bahwa server sudah siap dengan mengirimkan `READY` dalam bentuk biner
+        - Terima size file dari client lalu decode menjadi string
+        - Convert string menjadi integer
+        - Beritahu client bahwa ukuran telah diterima dengan mengirimkan `SIZE_OK` dalam bentuk biner
+        - Deklarasi `received` sebagai counter dan `filepath` sebagai path
+        - Buat file kosong di memory dengan `wb` dimana write untuk menulis dan binary artinya untuk semua jenis file
+        - Loop saat `received < file_size`
+        - Hitung berapa banyak bytes yang akan diterima dengan membandingkan nilai minimum dari `BUFFER_SIZE` dan `file_size - received`, lalu assign ke `chunk`
+        - Jika chunk kosong, maka break
+        - Tulis byte di file
+        - Tambahkan panjang dari chunk ke `received`
+        - Print file yang telah diupload, sizenya, dan client yang mengupload
+        - Beritahu client bahwa file telah sukses diupload
     ```python
     elif message.startswith('/upload '):
         filename = message[8:].strip()
