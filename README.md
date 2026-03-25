@@ -1023,7 +1023,310 @@ Link ditaruh di bawah ini
     <br><br>
 
 5. client.py
-    
+    - Import library
+    ```python
+    import socket
+    import threading
+    import sys
+    import os
+    ```
+    <br>
 
+    - Deklarasi `BUFFER_SIZE` dan `DOWNLOADS_DIR`
+    ```python
+    BUFFER_SIZE = 4096
+    DOWNLOADS_DIR = 'downloads'
+    ```
+    <br>
+
+    - Buat Direktori File, jika sudah ada set exist_ok ke ```True```
+    ```python
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+    ```
+    <br>
+
+    - Function `receive` dengan parameter `sock` dan `stop_event` untuk menerima dan menampilkan data dari server
+        - Deklarasi fungsi
+        ```python
+        def receive(sock, stop_event):
+        ```
+        <br>
+
+        - Loop terus selama `stop_event` belum di set
+        ```python
+        while not stop_event.is_set():
+        ```
+        <br>
+
+        - Terima data dari server
+            - Set timeout ke 0.5 detk
+            - Receive data dari server
+            - Jika data kosong, maka set `stop_event` dan break
+            - Tampilkan data dari server
+        ```python
+        try:
+            sock.settimeout(0.5)
+            data = sock.recv(BUFFER_SIZE)
+            if not data:
+                print("\nServer closed the connection.")
+                stop_event.set()
+                break
+            print(f"\r{data.decode('utf-8', errors='replace')}")
+            print("> ", end='', flush=True)
+        ```
+        <br>
+
+        - Error handler
+            - Saat timeout, maka `continue`
+            - Jika terdapat error lain, maka set `stop_event` lalu break
+        ```python
+        except socket.timeout:
+            continue
+        except Exception:
+            if not stop_event.is_set():
+                print("\nConnection lost.")
+            stop_event.set()
+            break
+        ```
+        <br>
+
+        - Function `send_upload` dengan parameter `sock` dan `filename` untuk mengirim file ke server
+            - Deklarasi fungsi
+            ```python
+            def send_upload(sock, filename):
+            ```
+            <br>
+
+            - Jika File tidak ditemukan, maka return
+            ```python
+            if not os.path.exists(filename):
+                print(f"Local file not found: {filename}")
+                return
+            ```
+            <br>
+
+            - Kirimkan perintah `/upload` ke server
+            ```python
+            sock.sendall(f"/upload {os.path.basename(filename)}".encode('utf-8'))
+            ```
+            <br>
+
+            - Respon server
+                - Tunggu respon dari server
+                - Jika respon bukan `READY`, maka return
+            ```python
+            resp = sock.recv(BUFFER_SIZE)
+            if resp.strip() != b"READY":
+                print(f"Server not ready: {resp.decode()}")
+                return
+            ```
+            <br>
+
+            - Dapatkan file size dan kirimkan ke server sizenya
+            ```python
+            file_size = os.path.getsize(filename)
+            sock.sendall(str(file_size).encode('utf-8'))
+            ```
+            <br>
+
+            - Konfirmasi dari server
+                - Dapatkan ack (balasan) dari server
+                - Jika ack bukan `SIZE_OK` maka return
+            ```python
+            ack = sock.recv(BUFFER_SIZE)
+            if ack.strip() != b"SIZE_OK":
+                print(f"Unexpected ack: {ack.decode()}")
+                return
+            ```
+            <br>
+
+            - Kirim file
+                - `sent` sebagai counter
+                - Buka dan baca file
+                - Loop sampai file berakhir
+                    - Baca file dan insert ke `chunk`
+                    - Jika chunk kosong, maka break
+                    - Kirimkan `chunk` ke server, update `sent`
+            ```python
+            sent = 0
+            with open(filename, 'rb') as f:
+                while True:
+                    chunk = f.read(BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    sock.sendall(chunk)
+                    sent += len(chunk)
+            print(f"Uploaded '{filename}' ({sent} bytes)")
+            ```
+            <br>
+
+        - Function `send_download` dengan parameter `sock` dan `filename` untuk mendownload file dari server
+            - Deklarasi fungsi
+            ```python
+            def send_download(sock, filename):
+                sock.sendall(f"/download {filename}".encode('utf-8'))
+            ```
+            <br>
+
+            - Dapatkan respon dari server
+                - Jika respon `ERROR`, maka return
+                - Jika respon tidak diawali `SIZE`, maka return
+            ```python
+            resp = sock.recv(BUFFER_SIZE).decode('utf-8').strip()
+            if resp.startswith("ERROR"):
+                print(f"{resp}")
+                return
+            if not resp.startswith("SIZE "):
+                print(f"Unexpected response: {resp}")
+                return
+            ```
+            <br>
+
+            - Ambil ukuran file dari response
+            ```python
+            file_size = int(resp.split()[1])
+            ```
+            <br>
+
+            - Beritahu server bahwa client siap
+            ```python
+            sock.sendall(b"SIZE_OK")
+            ```
+            <br>
+
+            - Download file
+                - `received` sebagai counter
+                - Simpan path di `save_path`
+                - Buat file kosong
+                - Loop sampai file lengkap:
+                    - Terima nilai minimum dari buffer dan `file_size`-`received` lalu insert ke `chunk`
+                    - Jika sudah tidak ada chunk, maka break
+                    - Tulis chunk di file yang dibuat tadi
+                    - Update nilai `received`
+            ```python
+            received = 0
+            save_path = os.path.join(DOWNLOADS_DIR, filename)
+            with open(save_path, 'wb') as f:
+                while received < file_size:
+                    chunk = sock.recv(min(BUFFER_SIZE, file_size - received))
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    received += len(chunk)
+            print(f"Downloaded '{filename}' → {save_path} ({received} bytes)")
+            ```
+            <br>
+
+        - Fungsi `main()`
+            - Setup
+                - Ambil host dan port dari command line argument
+                - Buat socket dan connect ke server
+            ```python
+            def main():
+                host = sys.argv[1] if len(sys.argv) > 1 else '127.0.0.1'
+                port = int(sys.argv[2]) if len(sys.argv) > 2 else 9000
+            
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    sock.connect((host, port))
+                except ConnectionRefusedError:
+                    print(f"Could not connect to {host}:{port}")
+                    sys.exit(1)
+                print(f"Connected to {host}:{port}")
+                print("Commands: /list  /upload <file>  /download <file>  /quit\n")
+            ```
+            <br>
+
+            - Threading
+                - `stop_event`: berisi sinyal untuk stop event
+                - `recv_thread`: thread untuk fungsi receive
+            ```python
+            stop_event = threading.Event()
+            recv_thread = threading.Thread(target=receive, args=(sock, stop_event), daemon=True)
+            recv_thread.start()
+            ```
+            <br>
+
+            - Loop utama untuk baca input dari keyboard
+                - Tampilkan `> ` dan tunggu client ketik
+                - Jika ada interrupt, maka break
+            ```python
+            try:
+                while not stop_event.is_set():
+                    try:
+                        user_input = input("> ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nDisconnecting")
+                        break
+            ```
+            <br>
+     
+            - Jika bukan `user_input`, maka continue
+            ```python
+            if not user_input:
+                continue
+            ```
+            <br>
+     
+            - Jika `user_input` adalah `/quit` atau `/exit`, maka break
+            ```python
+            if user_input in ('/quit', '/exit'):
+                print("Disconnecting")
+                break
+            ```
+            <br>
+     
+            - Jika `user_input` adalah `/list`, maka kirimkan message `/list` ke server
+            ```python
+            elif user_input == '/list':
+                sock.sendall(b"/list")
+            ```
+            <br>
+     
+            - Jika `user_input` adalah `/upload`, maka dapatkan `filename` dan panggil fungsi `send_upload`
+            ```python
+            elif user_input.startswith('/upload '):
+                filename = user_input[8:].strip()
+                send_upload(sock, filename)
+            ```
+            <br>
+     
+            - Jika `user_input` adalah `/download`:
+                - Dapatkan `filename`
+                - Set `stop_event` dan tunggu thread recv berhenti
+                - Panggil fungsi `send_download`
+                - Reset `stop_event`
+                - Jalankan recv baru
+            ```python
+            elif user_input.startswith('/download '):
+                filename = user_input[10:].strip()
+    
+                stop_event.set() 
+                recv_thread.join()
+    
+                send_download(sock, filename)
+    
+                stop_event.clear()
+                recv_thread = threading.Thread(target=receive, args=(sock, stop_event), daemon=True)
+                recv_thread.start()
+            ```
+            <br>
+
+            - Error handler
+            ```python
+            except Exception as e:
+                print(f"Error: {e}")
+            finally:
+                stop_event.set()
+                sock.close()
+                print("Connection closed.")
+            ```
+            <br>
+
+        - Hanlder untuk import file
+        ```python
+        if __name__ == '__main__':
+            main()
+        ```
 
 ## Screenshot Hasil
