@@ -122,7 +122,15 @@ def main():
 
             elif user_input.startswith('/upload '):
                 filename = user_input[8:].strip()
+            
+                stop_event.set()
+                recv_thread.join()
+            
                 send_upload(sock, filename)
+            
+                stop_event.clear()
+                recv_thread = threading.Thread(target=receive_loop, args=(sock, stop_event), daemon=True)
+                recv_thread.start() 
 
             elif user_input.startswith('/download '):
                 filename = user_input[10:].strip()
