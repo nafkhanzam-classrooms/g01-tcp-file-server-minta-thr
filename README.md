@@ -1344,17 +1344,17 @@ Link ditaruh di bawah ini
 
 ## Screenshot Hasil
 1. Syncronus
-   <img width="1318" height="436" alt="image" src="https://github.com/user-attachments/assets/7955ed7c-3131-45b7-9021-9042e5082104" /><br>
+   <img width="1318" height="436" alt="image" src="https://github.com/user-attachments/assets/7955ed7c-3131-45b7-9021-9042e5082104" /><br><br>
 2. Select
    <img width="1326" height="425" alt="image" src="https://github.com/user-attachments/assets/f174ed06-468e-4373-a70f-4c7df05e8618" />
-   <img width="687" height="352" alt="image" src="https://github.com/user-attachments/assets/2aaa6a23-54b9-4119-9af8-2d6debe98e08" /><br>
+   <img width="687" height="352" alt="image" src="https://github.com/user-attachments/assets/2aaa6a23-54b9-4119-9af8-2d6debe98e08" /><br><br>
 3. Poll
    <img width="1313" height="568" alt="image" src="https://github.com/user-attachments/assets/9b38ee8a-3e20-477b-888c-7272cec0d608" />
-   <img width="650" height="553" alt="image" src="https://github.com/user-attachments/assets/bf6064f6-9ce0-4d78-b0fe-18a0ee3e0fc9" /><br>
+   <img width="650" height="553" alt="image" src="https://github.com/user-attachments/assets/bf6064f6-9ce0-4d78-b0fe-18a0ee3e0fc9" /><br><br>
 4. Thread
    <img width="1312" height="600" alt="image" src="https://github.com/user-attachments/assets/9de3ba9f-a1af-4661-8336-5ac1433ef48d" />
-   <img width="714" height="641" alt="image" src="https://github.com/user-attachments/assets/61a6f422-4ab3-47b0-8586-51782ce7f9ad" /><br>
-5. Folder akhir
+   <img width="714" height="641" alt="image" src="https://github.com/user-attachments/assets/61a6f422-4ab3-47b0-8586-51782ce7f9ad" /><br><br>
+5. Folder akhir<br>
    <img width="374" height="810" alt="image" src="https://github.com/user-attachments/assets/6ea9759d-c58e-449a-9fba-e1fd68b90cba" /><br>
 
 
