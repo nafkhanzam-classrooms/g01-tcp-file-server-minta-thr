@@ -138,7 +138,7 @@ def main():
 
                     else:
                         message  = data.decode('utf-8').strip()
-                        print(f"[POLL] {fd_to_addr[fd]}: {message}")
+                        print(f"{fd_to_addr[fd]}: {message}")
                         response = process(fd, message)
                         if response:
                             send_queue[fd].append(response)
